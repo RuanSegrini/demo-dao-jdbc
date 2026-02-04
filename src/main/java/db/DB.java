@@ -1,98 +1,80 @@
 package db;
-// pacote onde ficam classes relacionadas a banco de dados
-
-import java.io.FileInputStream;
-// serve para ler arquivos do computador (db.properties)
 
 import java.io.IOException;
-// erro caso dê problema ao ler o arquivo
-
-import java.sql.*;
-// importa tudo do JDBC (Connection, Statement, ResultSet etc)
-
+import java.io.InputStream;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
-// classe usada para ler arquivos .properties (configurações)
 
 public class DB {
 
-    // guarda a conexão ativa do banco
-    // static = única conexão para o programa inteiro
     private static Connection conn = null;
 
-    // MÉTODO QUE ABRE A CONEXÃO
     public static Connection getConnection() {
-
-        // se ainda não existe conexão aberta
         if (conn == null) {
             try {
-                // carrega o arquivo db.properties
                 Properties props = loadProperties();
-
-                // pega a URL do banco do arquivo
                 String url = props.getProperty("dburl");
 
-                // cria a conexão usando URL + usuário + senha
                 conn = DriverManager.getConnection(url, props);
 
             } catch (SQLException e) {
-                // erro ao conectar no banco
-                throw new RuntimeException("Erro ao conectar");
+                throw new RuntimeException("Erro ao conectar no banco: " + e.getMessage());
             }
         }
-
-        // retorna a conexão aberta
         return conn;
     }
 
-    // MÉTODO QUE LÊ O ARQUIVO db.properties
     private static Properties loadProperties() {
+        try (InputStream fs = DB.class
+                .getClassLoader()
+                .getResourceAsStream("db.properties")) {
 
-        // try-with-resources fecha o arquivo automaticamente
-        try (FileInputStream fs = new FileInputStream("db.properties")) {
+            if (fs == null) {
+                throw new RuntimeException("Arquivo db.properties NÃO encontrado");
+            }
 
             Properties props = new Properties();
-
-            // carrega o conteúdo do arquivo
             props.load(fs);
-
             return props;
 
         } catch (IOException e) {
-            // erro ao ler o arquivo
             throw new RuntimeException("Erro ao ler db.properties");
         }
     }
 
-    // FECHA O RESULTSET (resultado do SELECT)
-    public static void closeResultSet(ResultSet rs) {
-        if (rs != null) {
+    public static void closeConnection() {
+        if (conn != null) {
             try {
-                rs.close(); // fecha o resultado
+                conn.close();
             } catch (SQLException e) {
-                throw new RuntimeException("Erro ao fechar ResultSet");
+                throw new RuntimeException("Erro ao fechar conexão");
             }
         }
     }
 
-    // FECHA O STATEMENT (comando SQL)
     public static void closeStatement(Statement st) {
         if (st != null) {
             try {
-                st.close(); // fecha o comando
+                st.close();
             } catch (SQLException e) {
                 throw new RuntimeException("Erro ao fechar Statement");
             }
         }
     }
 
-    // FECHA A CONEXÃO COM O BANCO
-    public static void closeConnection() {
-        if (conn != null) {
+    public static void closeResultSet(ResultSet rs) {
+        if (rs != null) {
             try {
-                conn.close(); // fecha a conexão
+                rs.close();
             } catch (SQLException e) {
-                throw new RuntimeException("Erro ao fechar conexão");
+                throw new RuntimeException("Erro ao fechar ResultSet");
             }
         }
     }
 }
+
+
